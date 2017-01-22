@@ -108,6 +108,16 @@
   :group 'disaster
   :type '(repeat (repeat string)))
 
+(defvar disaster-compilation-cmd nil
+  "When `disaster-compilation-cmd' is string-valued, it defines the
+compilation command executed by disaster; otherwise, disaster proceeds
+as usual.")
+
+(defvar disaster-object-file-location nil
+  "When `disaster-object-file-location' is string- or function-valued,
+it defines the path passed to objdump after compilation.")
+(make-variable-buffer-local 'disaster-object-file-location)
+
 (defvar save-place)
 
 ;;;###autoload
@@ -136,21 +146,29 @@ is used."
     (if (not (string-match "\\.c[cp]?p?$" file))
         (message "Not C/C++ non-header file")
       (let* ((cwd (file-name-directory (expand-file-name (buffer-file-name))))
-             (obj-file (concat (file-name-sans-extension file) ".o"))
+             (obj-file (cond
+                        ((stringp disaster-object-file-location)
+                         disaster-object-file-location)
+                        ((functionp disaster-object-file-location)
+                         (funcall disaster-object-file-location))
+                        (t (concat (file-name-sans-extension file) ".o"))))
              (make-root (disaster-find-project-root "Makefile" file))
-             (cc (if make-root
-                     (if (equal cwd make-root)
-                         (format "make %s %s" disaster-make-flags obj-file)
-                       (format "make %s -C %s %s"
-                               disaster-make-flags make-root
-                               (file-relative-name obj-file make-root)))
-                   (if (string-match "\\.c[cp]p?$" file)
-                       (format "%s %s -g -c -o %s %s"
-                               disaster-cxx disaster-cxxflags
-                               obj-file file)
-                     (format "%s %s -g -c -o %s %s"
-                             disaster-cc disaster-cflags
-                             obj-file file))))
+             (cc
+              (if (stringp disaster-compilation-cmd)
+                  disaster-compilation-cmd
+                (if make-root
+                    (if (equal cwd make-root)
+                        (format "make %s %s" disaster-make-flags obj-file)
+                      (format "make %s -C %s %s"
+                              disaster-make-flags make-root
+                              (file-relative-name obj-file make-root)))
+                  (if (string-match "\\.c[cp]p?$" file)
+                      (format "%s %s -g -c -o %s %s"
+                              disaster-cxx disaster-cxxflags
+                              obj-file file)
+                    (format "%s %s -g -c -o %s %s"
+                            disaster-cc disaster-cflags
+                            obj-file file)))))
              (dump (format "%s %s" disaster-objdump obj-file))
              (line-text (save-excursion
                           (buffer-substring-no-properties
