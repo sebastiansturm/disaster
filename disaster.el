@@ -108,14 +108,18 @@
   :group 'disaster
   :type '(repeat (repeat string)))
 
-(defvar disaster-compilation-cmd nil
+(defcustom disaster-compilation-cmd nil
   "When `disaster-compilation-cmd' is string-valued, it defines the
 compilation command executed by disaster; otherwise, disaster proceeds
-as usual.")
+as usual."
+  :group 'disaster
+  :type '(choice (const :tag "None" nil) string))
 
-(defvar disaster-object-file-location nil
+(defcustom disaster-object-file-location nil
   "When `disaster-object-file-location' is string- or function-valued,
-it defines the path passed to objdump after compilation.")
+it defines the path passed to objdump after compilation."
+  :group 'disaster
+  :type '(choice (const :tag "None" nil) string function))
 (make-variable-buffer-local 'disaster-object-file-location)
 
 (defvar save-place)
